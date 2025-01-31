@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='Standard' beautistatus='' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.base.evolution.alignment:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood" required="BEAST.base v2.7.7" version="2.7">
+
+    <data
+id="infB_HA"
+spec="Alignment"
+name="alignment">
+insert_sequences
+    </data>
+
+    <map name="Uniform" >beast.base.inference.distribution.Uniform</map>
+
+    <map name="Exponential" >beast.base.inference.distribution.Exponential</map>
+
+    <map name="LogNormal" >beast.base.inference.distribution.LogNormalDistributionModel</map>
+
+    <map name="Normal" >beast.base.inference.distribution.Normal</map>
+
+    <map name="Beta" >beast.base.inference.distribution.Beta</map>
+
+    <map name="Gamma" >beast.base.inference.distribution.Gamma</map>
+
+    <map name="LaplaceDistribution" >beast.base.inference.distribution.LaplaceDistribution</map>
+
+    <map name="prior" >beast.base.inference.distribution.Prior</map>
+
+    <map name="InverseGamma" >beast.base.inference.distribution.InverseGamma</map>
+
+    <map name="OneOnX" >beast.base.inference.distribution.OneOnX</map>
+
+    <run id="mcmc" spec="MCMC" chainLength="insert_chain_length">
+        <state id="state" spec="State" storeEvery="5000">
+            <tree id="Tree.t:infB_HA" spec="beast.base.evolution.tree.Tree" name="stateNode" useIntervalScaler="true">
+                <trait id="dateTrait.t:infB_HA" spec="feast.fileio.TraitSetFromTaxonSet" dateFormat="yyyy-M-dd" traitname="date" delimiter="|" everythingAfterLast="true">
+                    <taxa id="TaxonSet.infB_HA" spec="TaxonSet">
+                        <alignment idref="infB_HA"/>
+                    </taxa>
+                </trait>
+                <taxonset idref="TaxonSet.infB_HA"/>
+            </tree>
+            <parameter id="clockRate.c:infB_HA" spec="parameter.RealParameter" upper="0.01" name="stateNode">0.001</parameter>
+            <parameter id="gammaShape.s:infB_HA" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+            <parameter id="kappa.s:infB_HA" spec="parameter.RealParameter" lower="0.0" name="stateNode">2.0</parameter>
+            <parameter id="freqParameter.s:infB_HA" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+            <parameter id="popSize.t:infB_HA" spec="parameter.RealParameter" lower="0.0" name="stateNode">0.3</parameter>
+        </state>
+        		        <init spec='beast.base.evolution.tree.ClusterTree' id='UPGMATree.t:XYZ26'
+          initial="@Tree.t:infB_HA" clusterType='upgma' taxa='@infB_HA'/>
+
+        <!-- <init id="RandomTree.t:infB_HA" spec="RandomTree" estimate="false" initial="@Tree.t:infB_HA" taxa="@infB_HA">
+            <populationModel id="ConstantPopulation0.t:infB_HA" spec="ConstantPopulation">
+                <parameter id="randomPopSize.t:infB_HA" spec="parameter.RealParameter" name="popSize">1.0</parameter>
+            </populationModel>
+        </init> -->
+        <distribution id="posterior" spec="CompoundDistribution">
+            <distribution id="prior" spec="CompoundDistribution">
+                <distribution id="CoalescentConstant.t:infB_HA" spec="Coalescent">
+                    <populationModel id="ConstantPopulation.t:infB_HA" spec="ConstantPopulation" popSize="@popSize.t:infB_HA"/>
+                    <treeIntervals id="TreeIntervals.t:infB_HA" spec="targetedbeast.coalescent.RapidTreeIntervals" tree="@Tree.t:infB_HA"/>
+                </distribution>
+                <prior id="ClockPrior.c:infB_HA" name="distribution" x="@clockRate.c:infB_HA">
+                    <Uniform id="Uniform.0" name="distr" upper="Infinity"/>
+                </prior>
+                <prior id="FrequenciesPrior.s:infB_HA" name="distribution" x="@freqParameter.s:infB_HA">
+                    <distr id="Dirichlet.0" spec="distribution.Dirichlet">
+                        <parameter id="RealParameter.5" spec="parameter.RealParameter" dimension="4" estimate="false" name="alpha">4.0 4.0 4.0 4.0</parameter>
+                    </distr>
+                </prior>
+                <prior id="GammaShapePrior.s:infB_HA" name="distribution" x="@gammaShape.s:infB_HA">
+                    <Exponential id="Exponential.0" name="distr">
+                        <parameter id="RealParameter.0" spec="parameter.RealParameter" estimate="false" name="mean">1.0</parameter>
+                    </Exponential>
+                </prior>
+                <prior id="KappaPrior.s:infB_HA" name="distribution" x="@kappa.s:infB_HA">
+                    <LogNormal id="LogNormalDistributionModel.0" name="distr">
+                        <parameter id="RealParameter.3" spec="parameter.RealParameter" estimate="false" name="M">1.0</parameter>
+                        <parameter id="RealParameter.4" spec="parameter.RealParameter" estimate="false" name="S">1.25</parameter>
+                    </LogNormal>
+                </prior>
+                <prior id="PopSizePrior.t:infB_HA" name="distribution" x="@popSize.t:infB_HA">
+                    <OneOnX id="OneOnX.1" name="distr"/>
+                </prior>
+                <distribution id="consensusWeights" spec="targetedbeast.edgeweights.ConsensusWeights" data="@infB_HA" tree="@Tree.t:infB_HA"/>
+
+            </distribution>
+            <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
+                <distribution id="treeLikelihood.infB_HA" spec="ThreadedTreeLikelihood" data="@infB_HA" tree="@Tree.t:infB_HA">
+                    <siteModel id="SiteModel.s:infB_HA" spec="SiteModel" gammaCategoryCount="4" shape="@gammaShape.s:infB_HA">
+                        <parameter id="mutationRate.s:infB_HA" spec="parameter.RealParameter" estimate="false" lower="0.0" name="mutationRate">1.0</parameter>
+                        <parameter id="proportionInvariant.s:infB_HA" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
+                        <substModel id="hky.s:infB_HA" spec="HKY" kappa="@kappa.s:infB_HA">
+                            <frequencies id="estimatedFreqs.s:infB_HA" spec="Frequencies" frequencies="@freqParameter.s:infB_HA"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel id="StrictClock.c:infB_HA" spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c:infB_HA"/>
+                </distribution>
+            </distribution>
+        </distribution>
+        <operator id="StrictClockRateScaler.c:infB_HA" spec="AdaptableOperatorSampler" weight="0.25">
+            <parameter idref="clockRate.c:infB_HA"/>
+            <operator id="AVMNOperator.infB_HA" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="0.1">
+                <transformations id="AVMNSumTransform.infB_HA" spec="operator.kernel.Transform$LogConstrainedSumTransform">
+                    <f idref="freqParameter.s:infB_HA"/>
+                </transformations>
+                <transformations id="AVMNLogTransform.infB_HA" spec="operator.kernel.Transform$LogTransform">
+                    <f idref="clockRate.c:infB_HA"/>
+                    <f idref="gammaShape.s:infB_HA"/>
+                    <f idref="kappa.s:infB_HA"/>
+                </transformations>
+                <transformations id="AVMNNoTransform.infB_HA" spec="operator.kernel.Transform$NoTransform">
+                    <f idref="Tree.t:infB_HA"/>
+                </transformations>
+            </operator>
+            <operator id="StrictClockRateScalerX.c:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@clockRate.c:infB_HA" upper="10.0" weight="3.0"/>
+        </operator>
+
+        <operator id="strictClockUpDownOperator.c:infB_HA" spec="AdaptableOperatorSampler" weight="1.5">
+            <parameter idref="clockRate.c:infB_HA"/>
+            <tree idref="Tree.t:infB_HA"/>
+            <operator idref="AVMNOperator.infB_HA"/>
+            <operator id="strictClockUpDownOperatorX.c:infB_HA" spec="operator.kernel.BactrianUpDownOperator" scaleFactor="0.75" weight="3.0">
+                <up idref="clockRate.c:infB_HA"/>
+                <down idref="Tree.t:infB_HA"/>
+            </operator>
+        </operator>
+
+
+        <operator id="gammaShapeScaler.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="gammaShape.s:infB_HA"/>
+            <operator idref="AVMNOperator.infB_HA"/>
+            <operator id="gammaShapeScalerX.s:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:infB_HA" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="KappaScaler.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="kappa.s:infB_HA"/>
+            <operator idref="AVMNOperator.infB_HA"/>
+            <operator id="KappaScalerX.s:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:infB_HA" scaleFactor="0.1" upper="10.0" weight="0.1"/>
+        </operator>
+        <operator id="FrequenciesExchanger.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.05">
+            <parameter idref="freqParameter.s:infB_HA"/>
+            <operator idref="AVMNOperator.infB_HA"/>
+            <operator id="FrequenciesExchangerX.s:infB_HA" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                <parameter idref="freqParameter.s:infB_HA"/>
+            </operator>
+        </operator>
+
+
+
+        <operator id="Range" spec="targetedbeast.operators.RangeSlide" tree="@Tree.t:infB_HA" weight="25.0" size="0.1" edgeWeights="@consensusWeights"/>    
+        <operator id="WeightedRange" useWeightedStep="true" spec="targetedbeast.operators.RangeSlide" tree="@Tree.t:infB_HA" weight="25.0" size="0.1" edgeWeights="@consensusWeights"/>    
+        <operator id="TargetedWide" spec="targetedbeast.operators.WeightedWideOperator" tree="@Tree.t:infB_HA" weight="15.0" edgeWeights="@consensusWeights"/>            
+        <!-- <operator id="TargetedWilsonBalding" spec="targetedbeast.operators.TargetedWilsonBalding" tree="@Tree.t:infB_HA" weight="2.0" rapidTreeLikelihood="@treeLikelihood.infB_HA"/>    -->
+
+        <operator id="Randomizer" spec="targetedbeast.operators.NodeRandomizer" attempts="100" tree="@Tree.t:infB_HA" weight="0.25" edgeWeights="@consensusWeights"/>
+        <operator id="ScaleIntervalsRandomly" spec="targetedbeast.operators.IntervalScaleOperator" tree="@Tree.t:infB_HA" weight="1" scaleFactor="0.9" scaleAllNodesIndependently="true"/>
+        <operator id="ScaleWeightedIntervalsRandomly" spec="targetedbeast.operators.IntervalScaleOperator" tree="@Tree.t:infB_HA" weight="1" scaleFactor="0.9" scaleAllNodesIndependently="true"  edgeWeights="@consensusWeights"/>
+
+        <operator id="PopSizeScaler.t:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@popSize.t:infB_HA" upper="10.0" weight="3.0"/>
+
+        <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="insert_logEvery" model="@posterior" sanitiseHeaders="true" sort="smart">
+            <log idref="posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+            <log idref="treeLikelihood.infB_HA"/>
+            <log id="TreeHeight.t:infB_HA" spec="beast.base.evolution.tree.TreeStatLogger" tree="@Tree.t:infB_HA"/>
+            <log idref="clockRate.c:infB_HA"/>
+            <log idref="gammaShape.s:infB_HA"/>
+            <log idref="kappa.s:infB_HA"/>
+            <log idref="freqParameter.s:infB_HA"/>
+            <log idref="popSize.t:infB_HA"/>
+            <log idref="CoalescentConstant.t:infB_HA"/>
+        </logger>
+        <logger id="screenlog" spec="Logger" logEvery="1000">
+            <log idref="posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+        </logger>
+        <logger id="treelog.t:infB_HA" spec="Logger" fileName="$(filebase).trees" logEvery="insert_logEvery" mode="tree">
+            <log id="TreeWithMetaDataLogger.t:infB_HA" spec="beast.base.evolution.TreeWithMetaDataLogger" tree="@Tree.t:infB_HA"/>
+        </logger>
+        <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
+    </run>
+
+</beast>
