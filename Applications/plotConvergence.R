@@ -2,11 +2,12 @@ library(stringr)
 library(seqinr)
 library(ggplot2)
 library(gridExtra)
+library("colorblindr")
 
 # Clear workspace
 rm(list=ls())
 
-burnin = 0.0911
+burnin = 0.1
 
 # Set the directory to the directory of the file
 this.dir <- dirname(parent.frame(2)$ofile)
@@ -54,69 +55,88 @@ ess_tracer_style <- function(x, max_lag = NULL) {
 
 
 # get all log files in out that contain default
-logFiles <- list.files(path = "out", pattern = ".log", full.names = TRUE)
-logFiles <- logFiles[str_detect(logFiles, "Default")]
+logFiles <- list.files(path = "out", pattern = "\\.log", full.names = TRUE)
 
 data_convergence = data.frame()
 
-leafs = c("infB"=1978, "h3n2"=5000)
+# leafs = c("infB"=1978, "h3n2"=5000, "wnv"=2664, "mpxv"=1579)
+
+# remove any files that contain Default
+logFiles <- logFiles[!grepl("Default", logFiles)]
 
 # loop over the files
 for (logFile in logFiles) {
   # remove out/, .log and replace _Default_ with _ a
   name <- str_replace(logFile, "out/", "")
-  name <- str_replace(name, ".log", "")
-  name <- str_replace(name, "Default_", "")
+  name <- str_replace(name, "\\.log", "")
   # split on _
   name <- str_split(name, "_")[[1]]
   # read the log file
-  log.default <- read.table(logFile, header = TRUE, sep="\t")
+  log <- read.table(logFile, header = TRUE, sep="\t")
   # remove the first 10 %
+  log <- log[round(nrow(log)*burnin):nrow(log),]
+  
+  # read in the default file for comparison
+  log.default <- read.table(str_replace(logFile, name[[3]], "Default"), header = TRUE, sep="\t")
   log.default <- log.default[round(nrow(log.default)*burnin):nrow(log.default),]
-  # read in the corresponding targeted file
-  log.targeted <- read.table(gsub("Default", "Targeted", logFile), header = TRUE, sep="\t")
-  # remove the first 10 %
-  log.targeted <- log.targeted[round(nrow(log.targeted)*burnin):nrow(log.targeted),]
-  
-  
+
   # get the amount of samples in the log file
-  default.samples = max(log.default$Sample) - min(log.default$Sample)
-  targeted.samples = max(log.targeted$Sample) - min(log.targeted$Sample)
-  precentage = name[[3]]
+  samples = max(log$Sample) - min(log$Sample)
+  if (samples<10000){
+    next
+  }
+  sample.default = max(log.default$Sample) - min(log.default$Sample)
+  if (sample.default<10000){
+    next
+  }
+    
+  precentage = name[[4]]
   # multiply the percentage by the leafs
-  totalSamples = leafs[name[[1]]] * as.numeric(precentage)
+  totalSamples = as.numeric(precentage)
   
   # calculate the ESS value for the posterior, likelihood and prior
   for (header in c("posterior", "likelihood", "prior")) {
+    ess <- ess_tracer_style(log[,header])
     ess.default <- ess_tracer_style(log.default[,header])
-    ess.targeted <- ess_tracer_style(log.targeted[,header])
     
+    if (ess<10 || ess.default<10){
+      next
+    }
+    
+    ratio = (ess/samples) / (ess.default/sample.default)
+
     # make a text for the actual ESS values plotted with one digit
-    text = paste0("D: ", round(ess.default, 1), "\nT: ", round(ess.targeted, 1))
-    
+
     # add the ESS values to the data frame
     data_convergence <- rbind(data_convergence, 
                               data.frame(dataset = name[[1]], 
-                                         samples = totalSamples,
-                                         text = text,
+                                         samples = samples,
+                                         leaves = totalSamples,
                                          header = header, 
-                                         ratio = (ess.targeted/targeted.samples)/(ess.default/default.samples)))
+                                         method=name[[3]],
+                                         ess = ratio))
   }
 }
 
 # reorder facets for header
 data_convergence$header <- factor(data_convergence$header, levels = c("posterior", "likelihood", "prior"))
 # plot the ESS values
-p = ggplot(data_convergence[data_convergence$header=="posterior",], aes(x=samples, y=ratio, color = dataset)) + 
-  geom_point() +
+p = ggplot(data_convergence, aes(x=leaves, y=ess, color = method, fill=method)) + 
+  geom_point(aes(shape=dataset), size=2) +
   facet_grid(header~.) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  scale_color_manual(values=c(default, targeted)) +
-  labs(x = "number of samples", y = "Ratio of ESS\nper MCMC step using\ntargeted over\nuntargeted\nMCMC moves", fill = "Type") +
+  # theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  # scale_color_manual(values=c(default, targeted)) +
+  labs(x = "number of samples", y = "ESS per sample", fill = "Type") +
   # geom_text(aes(label = text), vjust = 0) +
-  theme_minimal()
+  facet_grid(header~.) +
+  scale_y_log10() +
+  scale_x_log10()+
+  geom_smooth(se=T, method="lm") +
+  theme_minimal() +
+  scale_color_manual(values=c("Targeted" = "#56B4E9", "Intervals" = "#009E73")) +
+  scale_fill_manual(values=c("Targeted" = "#56B4E9", "Intervals" = "#009E73")) +
+  coord_cartesian(ylim = c(1, 20))
   # theme(legend.position = "none") +
-  # scale_y_log10(limit = c(1, 30))
 plot(p)
-ggsave("convergence.png", p, width = 10, height = 5, units = "cm")
+ggsave("convergence.png", p, width = 12, height = 7, units = "cm")
 

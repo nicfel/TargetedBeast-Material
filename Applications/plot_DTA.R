@@ -1,0 +1,120 @@
+library(stringr)
+library(seqinr)
+library(ggplot2)
+library(gridExtra)
+library("colorblindr")
+library(treeio)
+library(ggtree)
+
+# Clear workspace
+rm(list=ls())
+
+burnin = 0.1
+
+# Set the directory to the directory of the file
+this.dir <- dirname(parent.frame(2)$ofile)
+setwd(this.dir)
+
+targeted="#d95f02"
+default="#1b9e77"
+
+# combine the trees files and run
+#/Applications/BEAST\ 2.7.7/bin/logcombiner -resample 500000 -burnin 10 -log h3n2_recent_Targeted_dta_5000_rep*.trees -o Targeted.trees
+# system("\\/Applications\\/BEAST\\ 2.7.7\\/bin\\/logcombiner -resample 500000 -burnin 10 -log out_dta/h3n2_recent_Targeted_dta_5000_rep*.trees -o out_dta/Targeted.trees")
+# /Applications/BEAST\ 2.7.7/bin/treeannotator -burnin 0 -height keep Targeted.trees Targeted.tree 
+# system("\\/Applications\\/BEAST\\ 2.7.7\\/bin\\/treeannotator -burnin 0 -height keep out_dta/Targeted.trees out_dta/Targeted.tree")
+# system("\\/Applications\\/BEAST\\ 2.7.7\\/bin\\/logcombiner -burnin 10 -log out_dta/h3n2_recent_Targeted_dta_5000_rep*.log -o out_dta/Targeted.log")
+
+# read in tree
+tree = read.beast("out_dta/Targeted.tree")
+
+# make a new node and tip trait called max_loc
+tree@data$max_loc = NA
+tree@data$max_prob = NA
+# for each of the nodes, loop over and
+for (i in seq(1, length(tree@data$max_loc), 1)) {
+  # get the node
+  probs = as.numeric(tree@data$location.set.prob[i][[1]])
+  locs = tree@data$location.set[i][[1]]
+  # get the index of the max prob
+  max_index = which.max(probs)
+  tree@data$max_loc[i] = locs[max_index]
+  tree@data$max_prob[i] = probs[max_index]
+  if (is.na(tree@data$max_loc[i])) {
+    dsa
+  }
+}
+
+# for each tip, get the date
+mrsd = as.Date("1000-01-01")
+for (i in tree@phylo$tip.label){
+  tmp = strsplit(i, split="\\|")[[1]]
+  mrsd = max(mrsd, as.Date(tmp[length(tmp)]))
+}
+
+# ColorBrewer’s Dark2 palette
+region_colors <- c(
+  USA_Central      = "#1b9e77",  # teal/green
+  USA_East         = "#d95f02",  # burnt orange
+  USA_West         = "#7570b3",  # purple
+  Canada           = "#e7298a",  # magenta/pink
+  Mexico           = "#66a61e",  # green
+  Central_America  = "#e6ab02",  # golden
+  Caribbean        = "#a6761d"   # brown
+)
+
+# plot the tree
+p = ggtree(tree, aes(color=max_loc, alpha=max_prob), size=0.5, mrsd=mrsd) +
+  geom_tippoint(aes(), color="black", size=1.15)+
+  theme_tree2() +
+  scale_color_manual(name="location with\nhighest posterior", values=region_colors) +
+  scale_alpha_continuous(name="posterior\nsupport for location") +
+  geom_tippoint(aes(color=max_loc), size=1) 
+plot(p)
+
+# read in the log file
+log = read.table("out_dta/Targeted.log", header=TRUE, sep="\t")
+# plot the posterior, likelihood and prior vs. samples
+# calculate the posterior ESS
+ess = effectiveSize(log$posterior)
+# calculate the likelihood ESS
+ess_likelihood = effectiveSize(log$likelihood)
+# calculate the prior ESS
+ess_prior = effectiveSize(log$prior)
+values = data.frame(
+  sample = log$Sample,
+  value = log$posterior,
+  quantity = paste0("Posterior (ESS=", round(ess, 0), ")")
+)
+values = rbind(values, data.frame(
+  sample = log$Sample,
+  value = log$likelihood,
+  quantity = paste0("Likelihood (ESS=", round(ess_likelihood, 0), ")")
+))
+values = rbind(values, data.frame(
+  sample = log$Sample,
+  value = log$prior,
+  quantity = paste0("Prior (ESS=", round(ess_prior, 0), ")")
+))
+
+# reorder to posterior likelohood prior
+values$quantity = factor(values$quantity, levels=c(
+  paste0("Posterior (ESS=", round(ess, 0), ")"),
+  paste0("Likelihood (ESS=", round(ess_likelihood, 0), ")"),
+  paste0("Prior (ESS=", round(ess_prior, 0), ")")
+))
+
+p2 = ggplot(values, aes(x=sample/10^6, y=value)) +
+  geom_line(size=0.1) +
+  theme_minimal()+
+  facet_wrap(~quantity, ncol=1, scales="free_y")+
+  ylab("") + xlab("Million MCMC samples")
+plot(p2)
+
+
+# make a combined plot next to each other where the tree takes 2/3 of the space
+# and p2 takes 1/3
+p3 = grid.arrange(p, p2, ncol=2, widths=c(3/4, 1/4))
+  
+ggsave("dta.pdf", p3, width = 12, height = 7)
+

@@ -13,35 +13,28 @@ setwd(this.dir)
 library(Biostrings)  # for reading FASTA files
 library(dplyr)       # for handling random sampling
 
-# remove all files in xmls
-unlink("xmls", recursive = TRUE)
-# make a new folder called xmls
-dir.create("xmls")
-
 # Define file directories and parameters
 fasta_dir <- "fasta/"
-xml_dir <- "xmls/"
+xml_dir <- "xmls_long/"
 template_dir <- "Template/"
 
-template <- c('Default', 'Targeted', 'Intervals')
+template <- c('Default', 'Intervals', 'Targeted')
 
-# leafs = c("infB"=1978, "h3n2"=5000, "wnv"=2664, "mpxv"=1579)
-n_samples <- round(exp(seq(log(50),log(200), length.out = 10)))
-cl = n_samples  * 10^4*5
-ll = round(n_samples * 10^1/4)
 
-# percentages <- c( 0.025, 0.05, 0.1, 0.2, 0.35, 0.5, 1)
-# cl <- c(2.5, 5, 10, 20, 35, 50, 100) * 10^5 *4
-# ll <- c(2.5, 5, 10, 20, 35, 50, 100) * 10^2
+percentages <- c(1000)
+cl <- c(10, 10) * 10^5 * 10
+ll <- c(1,1) * 10^3 * 5
 
 # Get list of FASTA files
 fastafiles <- list.files(fasta_dir, pattern = "*.fasta", full.names = TRUE)
 
-# remove files that contains h3n2_HA mpxv_all sars_all
-fastafiles <- fastafiles[!grepl("h3n2_HA", fastafiles)]
+# remove h3n2_HA
+# fastafiles <- fastafiles[!grepl("h3n2_HA", fastafiles)]
 # fastafiles <- fastafiles[!grepl("infB", fastafiles)]
-fastafiles <- fastafiles[!grepl("sars_all", fastafiles)]
+# fastafiles <- fastafiles[!grepl("sars_all", fastafiles)]
 # fastafiles <- fastafiles[!grepl("wnv", fastafiles)]
+
+set.seed(24354)  # Set seed for reproducibility
 
 
 for (fasta_file in fastafiles) {
@@ -49,15 +42,22 @@ for (fasta_file in fastafiles) {
   fasta <- readDNAStringSet(fasta_file)
   fname <- tools::file_path_sans_ext(basename(fasta_file))
   
-  for (perc in n_samples) {
+  # # build a iqtree with the following commands
+  # # system(['/opt/homebrew/bin/iqtree2 -nt 11 -s  raxml/'  Viruses{v} '_' num2str(y) '_' Segments{s} '_raxml.fasta -m GTR --prefix raxml/'  Viruses{v} '_' num2str(y) '_' Segments{s} '']);
+  # system(paste0("/opt/homebrew/bin/iqtree2 -nt 11 -s ", fasta_file, " -m GTR --prefix tree/", fname))
+  # ds
+  
+  for (perc in percentages) {
     # Randomly sample sequences
-    indices <- sample(1:length(fasta), size = round(perc))
+    total_samples = length(fasta)
+    
+    
+    indices <- sample(1:length(fasta), size = min(total_samples, perc))
     
     for (tmpl in template) {
       # Read template file and create output XML file
       template_file <- file.path(template_dir, paste0(tmpl, ".xml"))
-      output_file <- file.path(xml_dir, paste0(fname, "_", tmpl, "_", perc, ".xml"))
-      
+      output_file <- file.path(xml_dir, paste0(fname, "_", tmpl, "_", length(indices), "_rep0.xml"))
       template_lines <- readLines(template_file)
       output_lines <- character(0)  # Initialize empty vector to store output lines
       
@@ -70,16 +70,25 @@ for (fasta_file in fastafiles) {
             output_lines <- c(output_lines, paste0("\t<sequence id=\"seq_", seq_id, "\" spec=\"Sequence\" taxon=\"", seq_id, "\" totalcount=\"4\" value=\"", seq_value, "\"/>\n"))
           }
         } else if (grepl("insert_chain_length", line)) {
-          output_lines <- c(output_lines, sub("insert_chain_length", as.character(cl[which(n_samples == perc)]), line))
+          # line = '\t<run id="mcmc" spec="coupledMCMC.CoupledMCMC" chains="4" deltaTemperature="0.0" optimise="false" resampleEvery="1000" chainLength="4e+07">\n'
+          line = sub("insert_chain_length", as.character(cl[which(percentages == perc)]), line)
+          output_lines <- c(output_lines, line)
         } else if (grepl("insert_logEvery", line)) {
-          output_lines <- c(output_lines, sub("insert_logEvery", as.character(ll[which(n_samples == perc)]), line))
+          output_lines <- c(output_lines, sub("insert_logEvery", as.character(ll[which(percentages == perc)]), line))
         } else {
           output_lines <- c(output_lines, line)
         }
       }
-      
       # Write output lines to XML file
       writeLines(output_lines, output_file)
+      # make two more copies of the xml by replacing rep0 with rep1 and rep2
+      # use copyfile
+      system(paste0("cp ", output_file, " ", sub("_rep0.xml", "_rep1.xml", output_file)))
+      system(paste0("cp ", output_file, " ", sub("_rep0.xml", "_rep2.xml", output_file)))
+      
     }
+    
   }
+  
+
 }
