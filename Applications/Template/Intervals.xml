@@ -29,7 +29,7 @@ insert_sequences
 
     <run id="mcmc" spec="MCMC" chainLength="insert_chain_length">
         <state id="state" spec="State" storeEvery="5000">
-            <tree id="Tree.t:infB_HA" spec="beast.base.evolution.tree.Tree" name="stateNode" useIntervalScaler="true">
+            <tree id="Tree.t:infB_HA" spec="beast.base.evolution.tree.Tree" name="stateNode">
                 <trait id="dateTrait.t:infB_HA" spec="feast.fileio.TraitSetFromTaxonSet" dateFormat="yyyy-M-dd" traitname="date" delimiter="|" everythingAfterLast="true">
                     <taxa id="TaxonSet.infB_HA" spec="TaxonSet">
                         <alignment idref="infB_HA"/>
@@ -43,7 +43,7 @@ insert_sequences
             <parameter id="freqParameter.s:infB_HA" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
             <parameter id="popSize.t:infB_HA" spec="parameter.RealParameter" lower="0.0" name="stateNode">0.3</parameter>
         </state>
-        		        <init spec='beast.base.evolution.tree.ClusterTree' id='UPGMATree.t:XYZ26'
+		<init spec='targetedbeast.init.ensureNoZeroEdgeLength' id='UPGMATree.t:XYZ26'
           initial="@Tree.t:infB_HA" clusterType='upgma' taxa='@infB_HA'/>
 
         <!-- <init id="RandomTree.t:infB_HA" spec="RandomTree" estimate="false" initial="@Tree.t:infB_HA" taxa="@infB_HA">
@@ -79,7 +79,9 @@ insert_sequences
                 <prior id="PopSizePrior.t:infB_HA" name="distribution" x="@popSize.t:infB_HA">
                     <OneOnX id="OneOnX.1" name="distr"/>
                 </prior>
-                <distribution id="consensusWeights" spec="targetedbeast.edgeweights.ConsensusWeights" data="@infB_HA" tree="@Tree.t:infB_HA"/>
+                <distribution id="consensusWeights" spec="targetedbeast.edgeweights.ConsensusWeights" tree="@Tree.t:infB_HA">
+					<data spec="targetedbeast.alignment.ConsensusAlignment" data="@infB_HA"/>
+				</distribution>
 
             </distribution>
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
@@ -95,7 +97,7 @@ insert_sequences
                 </distribution>
             </distribution>
         </distribution>
-        <operator id="StrictClockRateScaler.c:infB_HA" spec="AdaptableOperatorSampler" weight="0.25">
+      <operator id="StrictClockRateScaler.c:infB_HA" spec="AdaptableOperatorSampler" weight="0.25">
             <parameter idref="clockRate.c:infB_HA"/>
             <operator id="AVMNOperator.infB_HA" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="0.1">
                 <transformations id="AVMNSumTransform.infB_HA" spec="operator.kernel.Transform$LogConstrainedSumTransform">
@@ -107,20 +109,10 @@ insert_sequences
                     <f idref="kappa.s:infB_HA"/>
                 </transformations>
                 <transformations id="AVMNNoTransform.infB_HA" spec="operator.kernel.Transform$NoTransform">
-                    <f idref="Tree.t:infB_HA"/>
+                    <!-- <f idref="Tree.t:infB_HA"/> -->
                 </transformations>
             </operator>
             <operator id="StrictClockRateScalerX.c:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@clockRate.c:infB_HA" upper="10.0" weight="3.0"/>
-        </operator>
-
-        <operator id="strictClockUpDownOperator.c:infB_HA" spec="AdaptableOperatorSampler" weight="1.5">
-            <parameter idref="clockRate.c:infB_HA"/>
-            <tree idref="Tree.t:infB_HA"/>
-            <operator idref="AVMNOperator.infB_HA"/>
-            <operator id="strictClockUpDownOperatorX.c:infB_HA" spec="operator.kernel.BactrianUpDownOperator" scaleFactor="0.75" weight="3.0">
-                <up idref="clockRate.c:infB_HA"/>
-                <down idref="Tree.t:infB_HA"/>
-            </operator>
         </operator>
 
 
@@ -142,13 +134,17 @@ insert_sequences
             </operator>
         </operator>
 
-        <operator id="CoalescentConstantUniformOperator.t:infB_HA" spec="kernel.BactrianNodeOperator" tree="@Tree.t:infB_HA" weight="30.0"/>
+        <operator id="CoalescentConstantUniformOperator.t:infB_HA" spec="beast.base.evolution.operator.Uniform" tree="@Tree.t:infB_HA" weight="10.0"/>
         <operator id="CoalescentConstantSubtreeSlide.t:infB_HA" spec="kernel.BactrianSubtreeSlide" tree="@Tree.t:infB_HA" weight="15.0"/>
         <operator id="CoalescentConstantNarrow.t:infB_HA" spec="Exchange" tree="@Tree.t:infB_HA" weight="15.0"/>
         <operator id="CoalescentConstantWide.t:infB_HA" spec="Exchange" isNarrow="false" tree="@Tree.t:infB_HA" weight="3.0"/>
         <operator id="CoalescentConstantWilsonBalding.t:infB_HA" spec="WilsonBalding" tree="@Tree.t:infB_HA" weight="3.0"/>
 
         <operator id="PopSizeScaler.t:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@popSize.t:infB_HA" upper="10.0" weight="3.0"/>
+
+        <operator id="ScaleAll" spec="targetedbeast.operators.IntervalScaleOperator" tree="@Tree.t:infB_HA" weight="0.25" scaleFactor="0.9" up="@popSize.t:infB_HA" down="@clockRate.c:infB_HA"/>
+        <operator id="ScaleIntervalsRandomly" spec="targetedbeast.operators.IntervalScaleOperator" tree="@Tree.t:infB_HA" weight="0.25" scaleFactor="0.9" scaleAllNodesIndependently="true"/>
+
 
         <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="insert_logEvery" model="@posterior" sanitiseHeaders="true" sort="smart">
             <log idref="posterior"/>

@@ -81,7 +81,7 @@ insert_sequences
                 </prior>
             </distribution>
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
-                <distribution id="treeLikelihood.infB_HA" spec="ThreadedTreeLikelihood" data="@infB_HA" tree="@Tree.t:infB_HA" scaling="none">
+                <distribution id="treeLikelihood.infB_HA" spec="ThreadedTreeLikelihood" data="@infB_HA" tree="@Tree.t:infB_HA">
                     <siteModel id="SiteModel.s:infB_HA" spec="SiteModel" gammaCategoryCount="4" shape="@gammaShape.s:infB_HA">
                         <parameter id="mutationRate.s:infB_HA" spec="parameter.RealParameter" estimate="false" lower="0.0" name="mutationRate">1.0</parameter>
                         <parameter id="proportionInvariant.s:infB_HA" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
@@ -105,21 +105,12 @@ insert_sequences
                     <f idref="kappa.s:infB_HA"/>
                 </transformations>
                 <transformations id="AVMNNoTransform.infB_HA" spec="operator.kernel.Transform$NoTransform">
-                    <f idref="Tree.t:infB_HA"/>
+                    <!-- <f idref="Tree.t:infB_HA"/> -->
                 </transformations>
             </operator>
             <operator id="StrictClockRateScalerX.c:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@clockRate.c:infB_HA" upper="10.0" weight="3.0"/>
         </operator>
 
-        <operator id="strictClockUpDownOperator.c:infB_HA" spec="AdaptableOperatorSampler" weight="1.5">
-            <parameter idref="clockRate.c:infB_HA"/>
-            <tree idref="Tree.t:infB_HA"/>
-            <operator idref="AVMNOperator.infB_HA"/>
-            <operator id="strictClockUpDownOperatorX.c:infB_HA" spec="operator.kernel.BactrianUpDownOperator" scaleFactor="0.75" weight="3.0">
-                <up idref="clockRate.c:infB_HA"/>
-                <down idref="Tree.t:infB_HA"/>
-            </operator>
-        </operator>
 
         <operator id="gammaShapeScaler.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.05">
             <parameter idref="gammaShape.s:infB_HA"/>
@@ -138,6 +129,8 @@ insert_sequences
                 <parameter idref="freqParameter.s:infB_HA"/>
             </operator>
         </operator>
+
+
         <operator id="CoalescentConstantBICEPSEpochTop.t:infB_HA" spec="EpochFlexOperator" scaleFactor="0.1" tree="@Tree.t:infB_HA" weight="2.0"/>
         <operator id="CoalescentConstantBICEPSEpochAll.t:infB_HA" spec="EpochFlexOperator" fromOldestTipOnly="false" scaleFactor="0.1" tree="@Tree.t:infB_HA" weight="2.0"/>
         <operator id="CoalescentConstantBICEPSTreeFlex.t:infB_HA" spec="TreeStretchOperator" scaleFactor="0.01" tree="@Tree.t:infB_HA" weight="2.0"/>
@@ -147,7 +140,16 @@ insert_sequences
         <operator id="CoalescentConstantNarrow.t:infB_HA" spec="Exchange" tree="@Tree.t:infB_HA" weight="15.0"/>
         <operator id="CoalescentConstantWide.t:infB_HA" spec="Exchange" isNarrow="false" tree="@Tree.t:infB_HA" weight="3.0"/>
         <operator id="CoalescentConstantWilsonBalding.t:infB_HA" spec="WilsonBalding" tree="@Tree.t:infB_HA" weight="3.0"/>
+        
         <operator id="PopSizeScaler.t:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@popSize.t:infB_HA" upper="10.0" weight="3.0"/>
+
+        <operator id="strictClockUpDownOperatorX.c:infB_HA" spec="operator.kernel.BactrianUpDownOperator" scaleFactor="0.0001" weight="3.0">
+            <up idref="clockRate.c:infB_HA"/>
+            <down idref="Tree.t:infB_HA"/>
+            <down idref="popSize.t:infB_HA"/>
+        </operator>
+
+
         <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="insert_logEvery" model="@posterior" sanitiseHeaders="true" sort="smart">
             <log idref="posterior"/>
             <log idref="likelihood"/>
