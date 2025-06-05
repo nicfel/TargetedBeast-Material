@@ -1,0 +1,34 @@
+To run the well calibrated simulation studies:
+
+Requirements: BEAST v2.7.7 with TargetedBeast package installed.
+
+
+
+Define the sequence length by setting SL environment variable to the desired value. e.g.
+export SL=100
+
+Then change directory to 50 or 100 and run the shell script `run.sh`
+
+File information:
+50/input.out.xml  BEAST template file
+50/results.txt    detailed coverage information -- output of CoverageCalculator and CladeCoverageCalculator.
+50/run.sh         script to run a WCSS
+50/truth.log      ground truth trace file
+50/truth.out.xml  ground truth BEAST XML file
+50/truth.trees    ground truth tree fil
+
+100 BEAST XML files:
+50/xml/analysis-out0.xml
+50/xml/analysis-out1.xml
+...
+50/xml/analysis-out99.xml
+
+
+Pre-build summaries are in 
+50/xml/run-sl25/summary
+50/xml/run-sl50/summary
+50/xml/run-sl100/summary
+50/xml/run-sl500/summary
+
+For 100 taxa, the same applies to the `100` directory.
+
