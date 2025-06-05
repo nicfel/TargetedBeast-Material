@@ -79,7 +79,7 @@ insert_sequences
                 <prior id="PopSizePrior.t:infB_HA" name="distribution" x="@popSize.t:infB_HA">
                     <OneOnX id="OneOnX.1" name="distr"/>
                 </prior>
-                <distribution id="consensusWeights" spec="targetedbeast.edgeweights.ParsimonyWeights" tree="@Tree.t:infB_HA" maxWeight="20">
+                <distribution id="consensusWeights" spec="targetedbeast.edgeweights.ParsimonyWeights2" tree="@Tree.t:infB_HA" maxWeight="20">
 					<data spec="targetedbeast.alignment.ConsensusAlignment" data="@infB_HA"/>
 				</distribution>
 
@@ -126,25 +126,23 @@ insert_sequences
         </operator> -->
 
 
-        <operator id="gammaShapeScaler.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.025">
+        <operator id="gammaShapeScaler.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.05">
             <parameter idref="gammaShape.s:infB_HA"/>
             <operator idref="AVMNOperator.infB_HA"/>
             <operator id="gammaShapeScalerX.s:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:infB_HA" scaleFactor="0.5" upper="10.0" weight="0.1"/>
         </operator>
-        <operator id="KappaScaler.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.025">
+        <operator id="KappaScaler.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.05">
             <parameter idref="kappa.s:infB_HA"/>
             <operator idref="AVMNOperator.infB_HA"/>
             <operator id="KappaScalerX.s:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@kappa.s:infB_HA" scaleFactor="0.1" upper="10.0" weight="0.1"/>
         </operator>
-        <operator id="FrequenciesExchanger.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.025">
+        <operator id="FrequenciesExchanger.s:infB_HA" spec="AdaptableOperatorSampler" weight="0.05">
             <parameter idref="freqParameter.s:infB_HA"/>
             <operator idref="AVMNOperator.infB_HA"/>
             <operator id="FrequenciesExchangerX.s:infB_HA" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
                 <parameter idref="freqParameter.s:infB_HA"/>
             </operator>
         </operator>
-
-
 
         <operator id="PopSizeScaler.t:infB_HA" spec="kernel.BactrianScaleOperator" parameter="@popSize.t:infB_HA" upper="10.0" weight="1.0"/>
 
@@ -159,9 +157,7 @@ insert_sequences
         <operator id="TargetedWilsonBalding" spec="targetedbeast.operators.TargetedWilsonBalding" tree="@Tree.t:infB_HA" weight="5" edgeWeights="@consensusWeights"/>   
         <operator id="TargetedWilsonBalding2" spec="targetedbeast.operators.TargetedWilsonBalding" tree="@Tree.t:infB_HA" weight="1" edgeWeights="@consensusWeights" useEdgeLength="true"/>   
 
-        <operator id="ScaleAll" spec="targetedbeast.operators.IntervalScaleOperator" tree="@Tree.t:infB_HA" weight="0.25" scaleFactor="0.9" up="@popSize.t:infB_HA">
-			<down idref="clockRate.c:infB_HA"/>
-		</operator>
+        <operator id="ScaleAll" spec="targetedbeast.operators.IntervalScaleOperator" tree="@Tree.t:infB_HA" weight="0.25" scaleFactor="0.9" up="@popSize.t:infB_HA" down="@clockRate.c:infB_HA"/>
         <operator id="ScaleIntervalsRandomly" spec="targetedbeast.operators.IntervalScaleOperator" tree="@Tree.t:infB_HA" weight="0.25" scaleFactor="0.9" scaleAllNodesIndependently="true"/>
 
         <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="insert_logEvery" model="@posterior" sanitiseHeaders="true" sort="smart">

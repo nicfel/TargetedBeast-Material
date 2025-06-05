@@ -377,7 +377,7 @@ template_dir <- "Template/"
 template <- c('Default_dta', 'Targeted_dta')
 
 
-percentages <- c(5000)
+percentages <- c(10000)
 cl <- c(10, 10) * 10^5 * 10
 ll <- c(1,1) * 10^3 * 50
 

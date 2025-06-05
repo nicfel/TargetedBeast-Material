@@ -26,23 +26,18 @@ template_dir <- "Template/"
 template <- c('Default', 'Targeted', 'Intervals')
 
 # leafs = c("infB"=1978, "h3n2"=5000, "wnv"=2664, "mpxv"=1579)
-n_samples <- round(exp(seq(log(50),log(200), length.out = 10)))
+n_samples <- round(exp(seq(log(50),log(200), length.out = 5)))
 cl = n_samples  * 10^4*5
 ll = round(n_samples * 10^1/4)
-
-# percentages <- c( 0.025, 0.05, 0.1, 0.2, 0.35, 0.5, 1)
-# cl <- c(2.5, 5, 10, 20, 35, 50, 100) * 10^5 *4
-# ll <- c(2.5, 5, 10, 20, 35, 50, 100) * 10^2
 
 # Get list of FASTA files
 fastafiles <- list.files(fasta_dir, pattern = "*.fasta", full.names = TRUE)
 
 # remove files that contains h3n2_HA mpxv_all sars_all
-fastafiles <- fastafiles[!grepl("h3n2_HA", fastafiles)]
+# fastafiles <- fastafiles[!grepl("h3n2_HA", fastafiles)]
 # fastafiles <- fastafiles[!grepl("infB", fastafiles)]
-fastafiles <- fastafiles[!grepl("sars_all", fastafiles)]
+# fastafiles <- fastafiles[!grepl("sars_all", fastafiles)]
 # fastafiles <- fastafiles[!grepl("wnv", fastafiles)]
-
 
 for (fasta_file in fastafiles) {
   # Read the FASTA file
@@ -73,6 +68,8 @@ for (fasta_file in fastafiles) {
           output_lines <- c(output_lines, sub("insert_chain_length", as.character(cl[which(n_samples == perc)]), line))
         } else if (grepl("insert_logEvery", line)) {
           output_lines <- c(output_lines, sub("insert_logEvery", as.character(ll[which(n_samples == perc)]), line))
+        }else if (grepl("weight=\"0.05\"", line)){
+          output_lines <- c(output_lines, sub("weight=\"0.05\"", "weight=\"0.25\"", line))   
         } else {
           output_lines <- c(output_lines, line)
         }

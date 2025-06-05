@@ -89,6 +89,39 @@ for (logFile in logFiles) {
   if (sample.default<10000){
     next
   }
+  
+  # read in the corresponding out file line by line and look for any lines with seconds in them
+  outLine = readLines(gsub(".log", ".out", logFile))
+  # only keep lines that contain seconds
+  outLine = outLine[grepl("seconds", outLine)]
+  # split on \\s and convert the fourth group to numeric
+  tmp = str_split(outLine, "\\s+")
+  total_seconds =0
+  if (length(tmp)>0){
+    for (i in seq(1, length(tmp), 1)){
+      if (length(tmp[[i]])>4){
+        total_seconds = total_seconds + as.numeric(tmp[[i]][4])
+      }
+    }
+  }
+  ## get the corresponding out file and total computation time
+  outLine.default = readLines(gsub(".log", ".out", str_replace(logFile, name[[3]], "Default")))
+  # only keep lines that contain seconds
+  outLine.default = outLine.default[grepl("seconds", outLine.default)]
+  # split on \\s and convert the fourth group to numeric
+  tmp.default = str_split(outLine.default, "\\s+")
+  total_seconds.default =0
+  if (length(tmp.default)>0){
+    for (i in seq(1, length(tmp.default), 1)){
+      if (length(tmp.default[[i]])>4){
+        total_seconds.default = total_seconds.default + as.numeric(tmp.default[[i]][4])
+      }
+    }
+  }
+  
+  if (total_seconds<10 || total_seconds.default<10){
+    next
+  }
     
   precentage = name[[4]]
   # multiply the percentage by the leafs
@@ -99,11 +132,11 @@ for (logFile in logFiles) {
     ess <- ess_tracer_style(log[,header])
     ess.default <- ess_tracer_style(log.default[,header])
     
-    if (ess<10 || ess.default<10){
+    if (ess<20 || ess.default<20){
       next
     }
     
-    ratio = (ess/samples) / (ess.default/sample.default)
+    ratio = (ess/samples/total_seconds) / (ess.default/sample.default/total_seconds.default)
 
     # make a text for the actual ESS values plotted with one digit
 
@@ -122,21 +155,20 @@ for (logFile in logFiles) {
 data_convergence$header <- factor(data_convergence$header, levels = c("posterior", "likelihood", "prior"))
 # plot the ESS values
 p = ggplot(data_convergence, aes(x=leaves, y=ess, color = method, fill=method)) + 
-  geom_point(aes(shape=dataset), size=2) +
+  geom_hline(yintercept=1, linetype="dashed", color = "black") +
+  geom_point(aes(shape=dataset), size=2, position = position_jitterdodge(jitter.width = 0.01, dodge.width = 0.01)) +
   facet_grid(header~.) +
-  # theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  # scale_color_manual(values=c(default, targeted)) +
-  labs(x = "number of samples", y = "ESS per sample", fill = "Type") +
+  labs(x = "number of samples", y = "ESS per hour of new\nover default operators") +
   # geom_text(aes(label = text), vjust = 0) +
   facet_grid(header~.) +
   scale_y_log10() +
   scale_x_log10()+
-  geom_smooth(se=T, method="lm") +
+  geom_smooth(se=T, alpha=0.1) +
   theme_minimal() +
   scale_color_manual(values=c("Targeted" = "#56B4E9", "Intervals" = "#009E73")) +
   scale_fill_manual(values=c("Targeted" = "#56B4E9", "Intervals" = "#009E73")) +
-  coord_cartesian(ylim = c(1, 20))
+  coord_cartesian(ylim = c(0.1, 10))
   # theme(legend.position = "none") +
 plot(p)
-ggsave("convergence.png", p, width = 12, height = 7, units = "cm")
+ggsave("convergence.pdf", p, width = 8, height = 5)
 
