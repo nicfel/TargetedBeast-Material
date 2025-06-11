@@ -671,7 +671,7 @@ p = ggplot() +
   geom_point(data=time_to_convergence, aes(x=x, y=time/60/60, fill=method, color=method, shape=low_ESS)) +
   labs(x = "", y = "Hours to ESS > 100") +
   facet_grid(header~.) +
-  scale_shape_manual(values=c(21, 24), name="ESS threshold reached") +
+  scale_shape_manual(values=c(21, 24), name="ESS below threshold") +
   scale_y_log10() +
   theme_minimal() +
   scale_fill_manual(values=colors) +
@@ -714,7 +714,7 @@ p = ggplot() +
   annotate("rect",xmin  = 4.5, xmax = 5.5, ymin  = 0, ymax =  Inf, fill  = "grey70", alpha = .3) +
   labs(x = "", y = "Hours to posterior ESS > 100") +
   # facet_grid(header~.) +
-  scale_shape_manual(values=c(21, 24), name="ESS threshold reached") +
+  scale_shape_manual(values=c(21, 24), name="ESS below threshold") +
   geom_point(data=time_to_convergence[time_to_convergence$header=="posterior",], aes(x=x, y=time/60/60, fill=method, color=method, shape=low_ESS)) +
   scale_y_log10() +
   theme_minimal() +
